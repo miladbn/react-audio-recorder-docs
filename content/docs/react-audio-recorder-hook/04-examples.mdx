@@ -1,0 +1,879 @@
+---
+title: "Examples"
+description: "Practical examples and use cases for React Audio Recorder Hook"
+sidebar_position: 4
+---
+
+# Examples
+
+This page provides a collection of practical examples for common use cases of the React Audio Recorder Hook.
+
+## Basic Voice Recorder
+
+A simple voice recorder component with all the essential features:
+
+```tsx
+import React, { useState } from "react";
+import useAudioRecorder from "react-audio-recorder-hook";
+
+function VoiceRecorder() {
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+
+  const {
+    startRecording,
+    stopRecording,
+    cancelRecording,
+    pauseRecording,
+    resumeRecording,
+    saveRecording,
+    isRecording,
+    isPaused,
+    recordingDuration,
+  } = useAudioRecorder();
+
+  const handleStopRecording = async () => {
+    await stopRecording();
+    const recording = await saveRecording();
+    if (recording) {
+      setAudioUrl(recording.url);
+    }
+  };
+
+  const formatTime = (timeInSeconds: number) => {
+    const minutes = Math.floor(timeInSeconds / 60);
+    const seconds = Math.floor(timeInSeconds % 60);
+    return `${minutes.toString().padStart(2, "0")}:${seconds
+      .toString()
+      .padStart(2, "0")}`;
+  };
+
+  return (
+    <div className="voice-recorder">
+      <div className="status">
+        {isRecording ? (
+          <div className="recording-status">
+            <span className="recording-indicator"></span>
+            {isPaused ? "Paused" : "Recording..."}
+          </div>
+        ) : (
+          <div className="ready-status">Ready to record</div>
+        )}
+
+        <div className="time">{formatTime(recordingDuration)}</div>
+      </div>
+
+      <div className="controls">
+        {!isRecording ? (
+          <button className="start-button" onClick={startRecording}>
+            Start Recording
+          </button>
+        ) : (
+          <>
+            {!isPaused ? (
+              <button className="pause-button" onClick={pauseRecording}>
+                Pause
+              </button>
+            ) : (
+              <button className="resume-button" onClick={resumeRecording}>
+                Resume
+              </button>
+            )}
+
+            <button className="stop-button" onClick={handleStopRecording}>
+              Stop
+            </button>
+
+            <button className="cancel-button" onClick={cancelRecording}>
+              Cancel
+            </button>
+          </>
+        )}
+      </div>
+
+      {audioUrl && (
+        <div className="audio-player">
+          <audio src={audioUrl} controls />
+          <a
+            href={audioUrl}
+            download="recording.webm"
+            className="download-button"
+          >
+            Download Recording
+          </a>
+        </div>
+      )}
+
+      <style jsx>{`
+        .voice-recorder {
+          max-width: 500px;
+          padding: 20px;
+          border-radius: 8px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          font-family: system-ui, sans-serif;
+        }
+
+        .status {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 20px;
+        }
+
+        .recording-status {
+          display: flex;
+          align-items: center;
+          color: #e53935;
+        }
+
+        .recording-indicator {
+          display: inline-block;
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          background-color: #e53935;
+          margin-right: 8px;
+          animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+          0% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.3;
+          }
+          100% {
+            opacity: 1;
+          }
+        }
+
+        .controls {
+          display: flex;
+          gap: 10px;
+          margin-bottom: 20px;
+        }
+
+        button {
+          padding: 8px 16px;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-weight: 500;
+        }
+
+        .start-button {
+          background-color: #4caf50;
+          color: white;
+        }
+
+        .pause-button,
+        .resume-button {
+          background-color: #2196f3;
+          color: white;
+        }
+
+        .stop-button {
+          background-color: #e53935;
+          color: white;
+        }
+
+        .cancel-button {
+          background-color: #9e9e9e;
+          color: white;
+        }
+
+        .audio-player {
+          margin-top: 20px;
+        }
+
+        .download-button {
+          display: inline-block;
+          margin-top: 10px;
+          padding: 6px 12px;
+          background-color: #2196f3;
+          color: white;
+          text-decoration: none;
+          border-radius: 4px;
+          font-size: 14px;
+        }
+      `}</style>
+    </div>
+  );
+}
+```
+
+## Voice Notes Application
+
+A more complete example of a voice notes application with saved recordings:
+
+```tsx
+import React, { useState, useEffect } from "react";
+import useAudioRecorder from "react-audio-recorder-hook";
+
+interface VoiceNote {
+  id: string;
+  url: string;
+  timestamp: Date;
+  duration: number;
+  title: string;
+}
+
+function VoiceNotesApp() {
+  const [notes, setNotes] = useState<VoiceNote[]>([]);
+  const [currentNote, setCurrentNote] = useState<string | null>(null);
+  const [noteTitle, setNoteTitle] = useState("");
+
+  const {
+    startRecording,
+    stopRecording,
+    cancelRecording,
+    saveRecording,
+    isRecording,
+    recordingDuration,
+  } = useAudioRecorder();
+
+  // Load saved notes from localStorage on initial render
+  useEffect(() => {
+    const savedNotes = localStorage.getItem("voiceNotes");
+    if (savedNotes) {
+      try {
+        const parsedNotes = JSON.parse(savedNotes);
+        // Convert string timestamps back to Date objects
+        const notesWithDates = parsedNotes.map((note: any) => ({
+          ...note,
+          timestamp: new Date(note.timestamp),
+        }));
+        setNotes(notesWithDates);
+      } catch (error) {
+        console.error("Failed to parse saved notes:", error);
+      }
+    }
+  }, []);
+
+  // Save notes to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem("voiceNotes", JSON.stringify(notes));
+  }, [notes]);
+
+  const handleStopRecording = async () => {
+    await stopRecording();
+    const recording = await saveRecording();
+    if (recording) {
+      // Generate a default title if none provided
+      const title =
+        noteTitle.trim() || `Voice Note ${new Date().toLocaleString()}`;
+
+      const newNote: VoiceNote = {
+        id: Date.now().toString(),
+        url: recording.url,
+        timestamp: new Date(),
+        duration: recordingDuration,
+        title,
+      };
+
+      setNotes((prevNotes) => [...prevNotes, newNote]);
+      setNoteTitle("");
+    }
+  };
+
+  const deleteNote = (id: string) => {
+    setNotes((prevNotes) => prevNotes.filter((note) => note.id !== id));
+    if (currentNote === id) {
+      setCurrentNote(null);
+    }
+  };
+
+  const formatDuration = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
+  };
+
+  const formatDate = (date: Date) => {
+    return (
+      date.toLocaleDateString() +
+      " " +
+      date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    );
+  };
+
+  return (
+    <div className="voice-notes-app">
+      <h1>Voice Notes</h1>
+
+      <div className="recorder">
+        <div className="recorder-status">
+          {isRecording ? (
+            <div className="recording">
+              <span className="recording-indicator"></span>
+              Recording... {formatDuration(recordingDuration)}
+            </div>
+          ) : (
+            <input
+              type="text"
+              placeholder="Note title (optional)"
+              value={noteTitle}
+              onChange={(e) => setNoteTitle(e.target.value)}
+            />
+          )}
+        </div>
+
+        <div className="recorder-controls">
+          {!isRecording ? (
+            <button className="start-button" onClick={startRecording}>
+              Start Recording
+            </button>
+          ) : (
+            <>
+              <button className="stop-button" onClick={handleStopRecording}>
+                Save Recording
+              </button>
+
+              <button className="cancel-button" onClick={cancelRecording}>
+                Cancel
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="notes-list">
+        <h2>Saved Notes ({notes.length})</h2>
+
+        {notes.length === 0 ? (
+          <div className="empty-state">
+            No voice notes yet. Start recording!
+          </div>
+        ) : (
+          <ul>
+            {notes.map((note) => (
+              <li
+                key={note.id}
+                className={currentNote === note.id ? "active" : ""}
+              >
+                <div className="note-info">
+                  <h3>{note.title}</h3>
+                  <div className="note-meta">
+                    <span>{formatDate(note.timestamp)}</span>
+                    <span>{formatDuration(note.duration)}</span>
+                  </div>
+                </div>
+
+                <div className="note-controls">
+                  <button
+                    className="play-button"
+                    onClick={() =>
+                      setCurrentNote(currentNote === note.id ? null : note.id)
+                    }
+                  >
+                    {currentNote === note.id ? "Pause" : "Play"}
+                  </button>
+
+                  <button
+                    className="delete-button"
+                    onClick={() => deleteNote(note.id)}
+                  >
+                    Delete
+                  </button>
+                </div>
+
+                {currentNote === note.id && (
+                  <div className="audio-player">
+                    <audio
+                      src={note.url}
+                      controls
+                      autoPlay
+                      onEnded={() => setCurrentNote(null)}
+                    />
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+```
+
+## Audio Visualizer
+
+A component that visualizes audio input while recording:
+
+```tsx
+import React, { useRef, useEffect } from "react";
+import useAudioRecorder from "react-audio-recorder-hook";
+
+function AudioVisualizer() {
+  const { startRecording, stopRecording, isRecording, mediaStream } =
+    useAudioRecorder();
+
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const requestAnimationRef = useRef<number>();
+  const analyserRef = useRef<AnalyserNode | null>(null);
+
+  useEffect(() => {
+    // Set up visualizer when recording starts
+    if (isRecording && mediaStream && canvasRef.current) {
+      const audioContext = new (window.AudioContext ||
+        (window as any).webkitAudioContext)();
+      analyserRef.current = audioContext.createAnalyser();
+      analyserRef.current.fftSize = 256;
+
+      const bufferLength = analyserRef.current.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+
+      const source = audioContext.createMediaStreamSource(mediaStream);
+      source.connect(analyserRef.current);
+
+      const canvas = canvasRef.current;
+      const canvasCtx = canvas.getContext("2d");
+
+      // Function to draw the visualizer
+      const draw = () => {
+        // Request the next animation frame
+        requestAnimationRef.current = requestAnimationFrame(draw);
+
+        // Get frequency data
+        analyserRef.current!.getByteFrequencyData(dataArray);
+
+        // Clear canvas
+        canvasCtx!.fillStyle = "#f5f5f5";
+        canvasCtx!.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Calculate bar width based on canvas and data
+        const barWidth = (canvas.width / bufferLength) * 2.5;
+        let x = 0;
+
+        // Draw bars
+        for (let i = 0; i < bufferLength; i++) {
+          const barHeight = (dataArray[i] / 255) * canvas.height;
+
+          // Create gradient for bars
+          const gradient = canvasCtx!.createLinearGradient(
+            0,
+            canvas.height,
+            0,
+            0
+          );
+          gradient.addColorStop(0, "#3498db");
+          gradient.addColorStop(1, "#9b59b6");
+
+          canvasCtx!.fillStyle = gradient;
+          canvasCtx!.fillRect(
+            x,
+            canvas.height - barHeight,
+            barWidth,
+            barHeight
+          );
+
+          x += barWidth + 1;
+        }
+      };
+
+      // Start the animation
+      draw();
+
+      // Cleanup function
+      return () => {
+        if (requestAnimationRef.current) {
+          cancelAnimationFrame(requestAnimationRef.current);
+        }
+
+        if (source) {
+          source.disconnect();
+        }
+
+        audioContext.close();
+      };
+    }
+  }, [isRecording, mediaStream]);
+
+  return (
+    <div className="audio-visualizer">
+      <canvas
+        ref={canvasRef}
+        width={500}
+        height={200}
+        style={{
+          background: "#f5f5f5",
+          borderRadius: "8px",
+          boxShadow: "0 2px 10px rgba(0, 0, 0, 0.1)",
+        }}
+      />
+
+      <div className="controls" style={{ marginTop: "16px" }}>
+        <button
+          onClick={isRecording ? stopRecording : startRecording}
+          style={{
+            padding: "8px 16px",
+            backgroundColor: isRecording ? "#e74c3c" : "#2ecc71",
+            color: "white",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+          }}
+        >
+          {isRecording ? "Stop" : "Start"} Recording
+        </button>
+      </div>
+    </div>
+  );
+}
+```
+
+## Audio Message Integration for Chat
+
+A component for adding voice messages to a chat application:
+
+```tsx
+import React, { useState } from "react";
+import useAudioRecorder from "react-audio-recorder-hook";
+
+interface AudioMessageProps {
+  onMessageRecorded: (audioBlob: Blob, duration: number) => void;
+}
+
+function AudioMessageRecorder({ onMessageRecorded }: AudioMessageProps) {
+  const [isHolding, setIsHolding] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+
+  const {
+    startRecording,
+    stopRecording,
+    cancelRecording,
+    saveRecording,
+    isRecording,
+    recordingDuration,
+  } = useAudioRecorder({
+    audioConstraints: {
+      echoCancellation: true,
+      noiseSuppression: true,
+    },
+  });
+
+  const handlePointerDown = async () => {
+    setIsHolding(true);
+    await startRecording();
+  };
+
+  const handlePointerUp = async () => {
+    if (!isRecording) return;
+
+    setIsHolding(false);
+
+    if (recordingDuration < 1) {
+      // Too short, cancel
+      cancelRecording();
+      return;
+    }
+
+    await stopRecording();
+
+    if (recordingDuration > 0.5) {
+      setShowConfirmation(true);
+    }
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isHolding || !isRecording) return;
+
+    // Check if pointer moved outside the button area (to cancel)
+    const buttonRect = e.currentTarget.getBoundingClientRect();
+    const buffer = 50; // pixels outside the button that are still considered valid
+
+    if (
+      e.clientY < buttonRect.top - buffer ||
+      e.clientY > buttonRect.bottom + buffer ||
+      e.clientX < buttonRect.left - buffer ||
+      e.clientX > buttonRect.right + buffer
+    ) {
+      setIsHolding(false);
+      cancelRecording();
+    }
+  };
+
+  const handleSend = async () => {
+    const recording = await saveRecording();
+    if (recording) {
+      onMessageRecorded(recording.blob, recordingDuration);
+      setShowConfirmation(false);
+    }
+  };
+
+  const handleCancel = () => {
+    cancelRecording();
+    setShowConfirmation(false);
+  };
+
+  const formatDuration = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
+  };
+
+  return (
+    <div className="audio-message-recorder">
+      {!showConfirmation ? (
+        <button
+          className={`record-button ${isRecording ? "recording" : ""}`}
+          onPointerDown={handlePointerDown}
+          onPointerUp={handlePointerUp}
+          onPointerLeave={handlePointerUp}
+          onPointerMove={handlePointerMove}
+        >
+          {isRecording ? (
+            <>
+              <span className="recording-indicator"></span>
+              {formatDuration(recordingDuration)}
+            </>
+          ) : (
+            <>
+              <span className="mic-icon">🎤</span>
+              Hold to record
+            </>
+          )}
+        </button>
+      ) : (
+        <div className="confirmation">
+          <div className="duration">
+            Audio: {formatDuration(recordingDuration)}
+          </div>
+          <div className="actions">
+            <button className="cancel-button" onClick={handleCancel}>
+              Cancel
+            </button>
+            <button className="send-button" onClick={handleSend}>
+              Send
+            </button>
+          </div>
+        </div>
+      )}
+
+      <style jsx>{`
+        .audio-message-recorder {
+          margin-top: 10px;
+        }
+
+        .record-button {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          padding: 12px;
+          border: none;
+          border-radius: 24px;
+          background-color: #f1f1f1;
+          cursor: pointer;
+          transition: background-color 0.2s;
+          font-size: 14px;
+        }
+
+        .record-button.recording {
+          background-color: #ffebee;
+          color: #e53935;
+        }
+
+        .mic-icon {
+          margin-right: 8px;
+        }
+
+        .recording-indicator {
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          background-color: #e53935;
+          margin-right: 8px;
+          animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+          0% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.3;
+          }
+          100% {
+            opacity: 1;
+          }
+        }
+
+        .confirmation {
+          padding: 12px;
+          background-color: #f5f5f5;
+          border-radius: 8px;
+        }
+
+        .duration {
+          margin-bottom: 8px;
+          font-size: 14px;
+        }
+
+        .actions {
+          display: flex;
+          justify-content: space-between;
+        }
+
+        .actions button {
+          padding: 8px 16px;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+        }
+
+        .cancel-button {
+          background-color: #f1f1f1;
+        }
+
+        .send-button {
+          background-color: #2196f3;
+          color: white;
+        }
+      `}</style>
+    </div>
+  );
+}
+```
+
+## Dictation App with Transcription
+
+An example of integrating the recorder with a speech-to-text service:
+
+```tsx
+import React, { useState } from "react";
+import useAudioRecorder from "react-audio-recorder-hook";
+
+function DictationApp() {
+  const [transcription, setTranscription] = useState<string>("");
+  const [isTranscribing, setIsTranscribing] = useState<boolean>(false);
+
+  const {
+    startRecording,
+    stopRecording,
+    saveRecording,
+    isRecording,
+    recordingDuration,
+  } = useAudioRecorder();
+
+  const handleStopRecording = async () => {
+    await stopRecording();
+    const recording = await saveRecording();
+
+    if (recording) {
+      transcribeAudio(recording.blob);
+    }
+  };
+
+  const transcribeAudio = async (audioBlob: Blob) => {
+    setIsTranscribing(true);
+
+    try {
+      // Create form data to send to transcription service
+      const formData = new FormData();
+      formData.append("audio", audioBlob, "recording.webm");
+
+      // This is a placeholder for a real transcription service API call
+      // You would replace this with an actual API call to a service like:
+      // - Google Cloud Speech-to-Text
+      // - Amazon Transcribe
+      // - Microsoft Azure Speech Service
+      // - OpenAI Whisper API
+      // - AssemblyAI
+
+      // Simulating API call with timeout
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      // Simulate a response (in reality, this would come from the API)
+      const simulatedResponse = {
+        text: "This is a simulated transcription of your audio recording. In a real implementation, this text would come from a speech-to-text service API.",
+      };
+
+      // Update the transcription state
+      setTranscription((prev) =>
+        prev ? `${prev}\n\n${simulatedResponse.text}` : simulatedResponse.text
+      );
+    } catch (error) {
+      console.error("Transcription failed:", error);
+      alert("Failed to transcribe audio. Please try again.");
+    } finally {
+      setIsTranscribing(false);
+    }
+  };
+
+  return (
+    <div className="dictation-app">
+      <h1>Audio Dictation</h1>
+
+      <div className="recorder-section">
+        <div className="status-indicator">
+          {isRecording ? (
+            <div className="recording-status">
+              <span className="recording-indicator"></span>
+              Recording... {Math.floor(recordingDuration)}s
+            </div>
+          ) : (
+            <div className="ready-status">Ready to record</div>
+          )}
+        </div>
+
+        <div className="controls">
+          {!isRecording ? (
+            <button
+              className="start-button"
+              onClick={startRecording}
+              disabled={isTranscribing}
+            >
+              Start Recording
+            </button>
+          ) : (
+            <button className="stop-button" onClick={handleStopRecording}>
+              Stop & Transcribe
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="transcription-section">
+        <h2>Transcription</h2>
+
+        {isTranscribing ? (
+          <div className="loading">
+            Transcribing your audio...
+            <div className="spinner"></div>
+          </div>
+        ) : (
+          <textarea
+            className="transcription-text"
+            value={transcription}
+            onChange={(e) => setTranscription(e.target.value)}
+            placeholder="Your transcription will appear here..."
+            rows={10}
+          />
+        )}
+
+        {transcription && (
+          <div className="actions">
+            <button
+              onClick={() => navigator.clipboard.writeText(transcription)}
+              className="copy-button"
+            >
+              Copy to Clipboard
+            </button>
+
+            <button
+              onClick={() => setTranscription("")}
+              className="clear-button"
+            >
+              Clear Transcription
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+```
+
+Each of these examples demonstrates a different way to use the React Audio Recorder Hook in real-world applications. You can adapt and extend these examples to fit your specific needs.
