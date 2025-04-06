@@ -12,7 +12,7 @@ importers:
         specifier: ^0.32.6
         version: 0.32.6(astro@5.6.1(rollup@4.39.0)(typescript@5.8.3))
       astro:
-        specifier: ^5.5.3
+        specifier: ^5.6.1
         version: 5.6.1(rollup@4.39.0)(typescript@5.8.3)
       react-audio-recorder-hook:
         specifier: ^1.0.5
