@@ -2,8 +2,14 @@
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 
+// GitHub Pages deployment configuration
+const SITE_URL = 'https://miladbn.github.io';
+const BASE_PATH = '/react-audio-recorder-docs';
+
 // https://astro.build/config
 export default defineConfig({
+	site: SITE_URL,
+	base: BASE_PATH,
 	integrations: [
 		starlight({
 			title: 'react-audio-recorder-hook',
