@@ -1,0 +1,17 @@
+{
+  "*": {
+    "theme": {
+      "toc": true,
+      "sidebar": true,
+      "pagination": true
+    }
+  },
+  "index": {
+    "title": "Introduction",
+    "order": 1
+  },
+  "react-audio-recorder-hook": {
+    "title": "React Audio Recorder Hook",
+    "order": 2
+  }
+}
